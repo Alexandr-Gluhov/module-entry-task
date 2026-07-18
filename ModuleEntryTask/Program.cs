@@ -1,6 +1,11 @@
+using ModuleEntryTask.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApplicationDb();
+
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+await app.MigrateDbAsync();
 
 app.Run();
