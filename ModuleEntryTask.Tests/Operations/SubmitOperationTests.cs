@@ -20,7 +20,7 @@ public class SubmitOperationTests(ApiFactory factory) : TestBase(factory)
         var body = await response.Content.ReadFromJsonAsync<OperationResponse>();
         Assert.Equal("PROCESSING", body!.Status);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var intent = await db.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == "op-submit-1");
         Assert.NotNull(intent);
     }
@@ -34,7 +34,7 @@ public class SubmitOperationTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var intents = await db.SubmitIntents.Where(i => i.OperationId == "op-submit-2").ToListAsync();
         Assert.Single(intents);
     }

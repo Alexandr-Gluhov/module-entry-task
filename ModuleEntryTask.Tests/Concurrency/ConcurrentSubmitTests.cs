@@ -23,7 +23,7 @@ public class ConcurrentSubmitTests(ApiFactory factory) : TestBase(factory)
         Assert.Equal(1, accepted);
         Assert.Equal(9, ok);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var intents = await db.SubmitIntents
             .Where(i => i.OperationId == "op-concurrent")
             .ToListAsync();
@@ -58,7 +58,7 @@ public class ConcurrentSubmitTests(ApiFactory factory) : TestBase(factory)
 
         await Task.WhenAll(tasks);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var processingEvents = await db.OperationEvents
             .Where(e => e.OperationId == "op-concurrent-events"
                         && e.Type == ModuleEntryTask.Models.EventType.Processing)

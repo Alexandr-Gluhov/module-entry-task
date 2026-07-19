@@ -24,7 +24,7 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var op = await db.Operations.FindAsync("op-receipt-1");
         Assert.Equal(OperationStatus.Completed, op!.Status);
         Assert.Equal("ppid-001", op.ProviderPaymentId);
@@ -46,7 +46,7 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var op = await db.Operations.FindAsync("op-receipt-2");
         Assert.Equal(OperationStatus.Rejected, op!.Status);
     }
@@ -70,7 +70,7 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var events = await db.OperationEvents
             .Where(e => e.OperationId == "op-receipt-dup" && e.Type == EventType.Completed)
             .ToListAsync();
@@ -102,7 +102,7 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var op = await db.Operations.FindAsync("op-receipt-late");
         Assert.Equal(OperationStatus.Completed, op!.Status);
 
@@ -154,7 +154,7 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var op = await db.Operations.FindAsync("op-early-cb");
         Assert.Equal("ppid-early", op!.ProviderPaymentId);
         Assert.Equal(OperationStatus.Completed, op.Status);

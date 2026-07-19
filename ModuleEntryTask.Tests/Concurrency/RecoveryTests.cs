@@ -14,7 +14,7 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
     {
         await CreateOperationAsync("op-recovery");
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var operation = await db.Operations.FindAsync("op-recovery");
         operation!.Status = OperationStatus.Processing;
 
@@ -27,11 +27,11 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
 
         await db.SaveChangesAsync();
 
-        using var scope = factory.Services.CreateScope();
+        using var scope = Factory.Services.CreateScope();
         var submitWorker = scope.ServiceProvider.GetRequiredService<SubmitWorker>();
         await submitWorker.ProcessOnceAsync(CancellationToken.None);
 
-        using var db2 = Factory.CreateDbContext();
+        await using var db2 = Factory.CreateDbContext();
         var intent = await db2.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == "op-recovery");
 
         Assert.True(intent == null || intent.RetryAfter != null,
@@ -43,7 +43,7 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
     {
         await CreateAndSubmitAsync("op-survives");
 
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         var intent = await db.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == "op-survives");
         Assert.NotNull(intent);
 
@@ -57,7 +57,7 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
             occurredAt = DateTime.UtcNow
         });
 
-        using var db2 = Factory.CreateDbContext();
+        await using var db2 = Factory.CreateDbContext();
         var intentAfter = await db2.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == "op-survives");
         Assert.Null(intentAfter);
     }

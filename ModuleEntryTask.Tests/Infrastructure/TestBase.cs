@@ -15,7 +15,7 @@ public abstract class TestBase : IClassFixture<ApiFactory>, IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        using var db = Factory.CreateDbContext();
+        await using var db = Factory.CreateDbContext();
         db.SubmitIntents.RemoveRange(db.SubmitIntents);
         db.OperationEvents.RemoveRange(db.OperationEvents);
         db.Operations.RemoveRange(db.Operations);
