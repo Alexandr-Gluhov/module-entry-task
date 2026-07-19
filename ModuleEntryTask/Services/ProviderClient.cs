@@ -1,11 +1,25 @@
+using System.Net;
 using ModuleEntryTask.DTOs;
 using ModuleEntryTask.Models;
 
 namespace ModuleEntryTask.Services;
 
+public enum ProviderSubmitResult
+{
+    Success,
+    TransientFailure,
+    PermanentFailure,
+}
+
+public class ProviderSubmitResponse
+{
+    public ProviderSubmitResult Result { get; init; }
+    public ProviderPaymentResponse? Payment { get; init; }
+}
+
 public class ProviderClient(HttpClient httpClient)
 {
-    public async Task<ProviderPaymentResponse?> SubmitPaymentAsync(Operation operation)
+    public async Task<ProviderSubmitResponse> SubmitPaymentAsync(Operation operation)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/payments")
         {
@@ -20,11 +34,36 @@ public class ProviderClient(HttpClient httpClient)
         request.Headers.Add("Idempotency-Key", operation.Id);
         request.Headers.Add("X-Correlation-ID", operation.Id);
 
-        var response = await httpClient.SendAsync(request);
+        HttpResponseMessage response;
 
-        if (!response.IsSuccessStatusCode)
-            return null;
+        try
+        {
+            response = await httpClient.SendAsync(request);
+        }
+        catch (Exception)
+        {
+            return new ProviderSubmitResponse { Result = ProviderSubmitResult.TransientFailure };
+        }
 
-        return await response.Content.ReadFromJsonAsync<ProviderPaymentResponse>();
+        if (response.IsSuccessStatusCode)
+        {
+            var payment = await response.Content.ReadFromJsonAsync<ProviderPaymentResponse>();
+            return new ProviderSubmitResponse
+            {
+                Result = ProviderSubmitResult.Success,
+                Payment = payment,
+            };
+        }
+
+        var isTransient = response.StatusCode == HttpStatusCode.ServiceUnavailable
+                          || response.StatusCode == HttpStatusCode.TooManyRequests
+                          || (int)response.StatusCode >= 500;
+
+        return new ProviderSubmitResponse
+        {
+            Result = isTransient
+                ? ProviderSubmitResult.TransientFailure
+                : ProviderSubmitResult.PermanentFailure,
+        };
     }
 }

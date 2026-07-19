@@ -55,29 +55,41 @@ public class SubmitWorker(
 
         try
         {
-            var result = await providerClient.SubmitPaymentAsync(operation);
+            var response = await providerClient.SubmitPaymentAsync(operation);
 
-            if (result != null)
+            switch (response.Result)
             {
-                if (operation.ProviderPaymentId == null)
-                    operation.ProviderPaymentId = result.ProviderPaymentId;
+                case ProviderSubmitResult.Success:
+                    if (operation.ProviderPaymentId == null)
+                        operation.ProviderPaymentId = response.Payment!.ProviderPaymentId;
 
-                db.SubmitIntents.Remove(intent);
-                await db.SaveChangesAsync(stoppingToken);
+                    db.SubmitIntents.Remove(intent);
+                    await db.SaveChangesAsync(stoppingToken);
 
-                logger.LogInformation(
-                    "Payment submitted for operation {OperationId}, providerPaymentId: {ProviderPaymentId}",
-                    operation.Id, result.ProviderPaymentId);
-            }
-            else
-            {
-                await ScheduleRetryAsync(db, intent, stoppingToken);
+                    logger.LogInformation(
+                        "Payment submitted for operation {OperationId}, providerPaymentId: {ProviderPaymentId}",
+                        operation.Id, response.Payment!.ProviderPaymentId);
+                    break;
+
+                case ProviderSubmitResult.TransientFailure:
+                    logger.LogWarning(
+                        "Transient failure submitting operation {OperationId}, attempt {AttemptCount}. Will retry.",
+                        operation.Id, intent.AttemptCount + 1);
+                    await ScheduleRetryAsync(db, intent, stoppingToken);
+                    break;
+
+                case ProviderSubmitResult.PermanentFailure:
+                    logger.LogError(
+                        "Permanent failure submitting operation {OperationId}. No retry.",
+                        operation.Id);
+                    await ScheduleRetryAsync(db, intent, stoppingToken);
+                    break;
             }
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex,
-                "Failed to submit payment for operation {OperationId}, attempt {AttemptCount}",
+                "Unexpected error submitting operation {OperationId}, attempt {AttemptCount}",
                 operation.Id, intent.AttemptCount + 1);
 
             await ScheduleRetryAsync(db, intent, stoppingToken);
