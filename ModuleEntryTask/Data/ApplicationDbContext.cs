@@ -48,7 +48,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(e => e.OperationId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-        
+
         modelBuilder.Entity<SubmitIntent>(entity =>
         {
             entity.HasKey(s => s.Id);
