@@ -10,6 +10,20 @@ namespace ModuleEntryTask.Controllers;
 [Route("operations")]
 public class OperationsController(OperationService operationService) : ControllerBase
 {
+    [HttpGet("{id}/events")]
+    public async Task<IActionResult> GetEvents(string id)
+    {
+        try
+        {
+            var events = await operationService.GetEventsAsync(id);
+            return Ok(events);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {

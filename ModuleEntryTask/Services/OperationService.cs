@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ModuleEntryTask.Data;
+using ModuleEntryTask.DTOs;
 using ModuleEntryTask.Exceptions;
 using ModuleEntryTask.Models;
 
@@ -7,6 +8,29 @@ namespace ModuleEntryTask.Services;
 
 public class OperationService(ApplicationDbContext db)
 {
+    public async Task<List<OperationEventResponse>> GetEventsAsync(string operationId)
+    {
+        var exists = await db.Operations.AnyAsync(o => o.Id == operationId);
+        if (!exists)
+            throw new NotFoundException($"Operation '{operationId}' not found.");
+
+        var events = await db.OperationEvents
+            .Where(e => e.OperationId == operationId)
+            .OrderBy(e => e.Id)
+            .Select((e, index) => new OperationEventResponse
+            {
+                EventId = index + 1,
+                Type = e.Type.ToString().ToUpper(),
+                FromStatus = e.FromStatus != null ? e.FromStatus.ToString()!.ToUpper() : null,
+                ToStatus = e.ToStatus != null ? e.ToStatus.ToString()!.ToUpper() : null,
+                Message = e.Message,
+                OccurredAt = e.OccurredAt,
+            })
+            .ToListAsync();
+
+        return events;
+    }
+
     public async Task<Operation> GetByIdAsync(string operationId)
     {
         return await db.Operations.FindAsync(operationId)
@@ -89,7 +113,6 @@ public class OperationService(ApplicationDbContext db)
         {
             await transaction.RollbackAsync();
 
-            // нарушение уникального индекса — конкурентный submit успел первым
             var current = await db.Operations.FindAsync(operationId);
             return (current!, false);
         }
