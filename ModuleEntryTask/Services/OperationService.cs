@@ -14,9 +14,12 @@ public class OperationService(ApplicationDbContext db)
         if (!exists)
             throw new NotFoundException($"Operation '{operationId}' not found.");
 
-        var events = await db.OperationEvents
+        var rawEvents = await db.OperationEvents
             .Where(e => e.OperationId == operationId)
             .OrderBy(e => e.Id)
+            .ToListAsync();
+
+        var events = rawEvents
             .Select((e, index) => new OperationEventResponse
             {
                 EventId = index + 1,
@@ -26,7 +29,7 @@ public class OperationService(ApplicationDbContext db)
                 Message = e.Message,
                 OccurredAt = e.OccurredAt,
             })
-            .ToListAsync();
+            .ToList();
 
         return events;
     }

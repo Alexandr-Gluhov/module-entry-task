@@ -33,12 +33,12 @@ public class ReceiptService(ApplicationDbContext db)
         if (operation.Status is OperationStatus.Completed or OperationStatus.Rejected
             && operation.ProviderPaymentId == request.ProviderPaymentId)
         {
-            await transaction.RollbackAsync();
-            return;
-        }
+            if (operation.Status == incomingStatus)
+            {
+                await transaction.RollbackAsync();
+                return;
+            }
 
-        if (operation.Status is OperationStatus.Completed or OperationStatus.Rejected)
-        {
             db.OperationEvents.Add(new OperationEvent
             {
                 OperationId = operation.Id,
@@ -51,6 +51,12 @@ public class ReceiptService(ApplicationDbContext db)
 
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
+            return;
+        }
+
+        if (operation.Status is OperationStatus.Completed or OperationStatus.Rejected)
+        {
+            await transaction.RollbackAsync();
             return;
         }
 

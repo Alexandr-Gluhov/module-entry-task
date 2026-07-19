@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="ModuleEntryTask.Tests/ModuleEntryTask.Tests.csproj" />
   <Project Path="ModuleEntryTask/ModuleEntryTask.csproj" />
 </Solution>
