@@ -31,4 +31,20 @@ public class OperationsController(OperationService operationService) : Controlle
             return Conflict(new { error = ex.Message });
         }
     }
+
+    [HttpPost("{id}/submit")]
+    public async Task<IActionResult> Submit(string id)
+    {
+        try
+        {
+            var (operation, created) = await operationService.SubmitAsync(id);
+            return created
+                ? StatusCode(202, OperationMapper.ToResponse(operation))
+                : Ok(OperationMapper.ToResponse(operation));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
 }

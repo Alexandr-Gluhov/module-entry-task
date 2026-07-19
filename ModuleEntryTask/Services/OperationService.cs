@@ -42,4 +42,50 @@ public class OperationService(ApplicationDbContext db)
 
         return operation;
     }
+
+    public async Task<(Operation operation, bool created)> SubmitAsync(string operationId)
+    {
+        var operation = await db.Operations.FindAsync(operationId)
+            ?? throw new NotFoundException($"Operation '{operationId}' not found.");
+
+        if (operation.Status != OperationStatus.Created)
+            return (operation, false);
+
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            operation.Status = OperationStatus.Processing;
+
+            db.OperationEvents.Add(new OperationEvent
+            {
+                OperationId = operationId,
+                Type = EventType.Processing,
+                FromStatus = OperationStatus.Created,
+                ToStatus = OperationStatus.Processing,
+                Message = "Operation submitted for processing",
+                OccurredAt = DateTime.UtcNow,
+            });
+
+            db.SubmitIntents.Add(new SubmitIntent
+            {
+                OperationId = operationId,
+                AttemptCount = 0,
+                RetryAfter = null,
+            });
+
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (operation, true);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+
+            // нарушение уникального индекса — конкурентный submit успел первым
+            var current = await db.Operations.FindAsync(operationId);
+            return (current!, false);
+        }
+    }
 }
