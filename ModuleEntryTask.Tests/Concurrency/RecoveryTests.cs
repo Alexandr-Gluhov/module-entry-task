@@ -40,18 +40,19 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
     }
 
     [Fact]
-    public async Task PendingIntentSurvivesRestart_StillInDb()
+    public async Task Receipt_DeletesIntent_SoWorkerWontRetry()
     {
-        await CreateAndSubmitAsync("op-survives");
+        await CreateAndSubmitAsync("op-receipt-deletes-intent");
 
         await using var db = Factory.CreateDbContext();
-        var intent = await db.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == "op-survives");
+        var intent = await db.SubmitIntents.FirstOrDefaultAsync(
+            i => i.OperationId == "op-receipt-deletes-intent");
         Assert.NotNull(intent);
 
         await Client.PostAsJsonAsync("/receipts", new
         {
             providerPaymentId = "ppid-survives",
-            operationId = "op-survives",
+            operationId = "op-receipt-deletes-intent",
             result = "COMPLETED",
             message = "done",
             occurredAt = DateTime.UtcNow
@@ -59,7 +60,7 @@ public class RecoveryTests(ApiFactory factory) : TestBase(factory)
 
         await using var db2 = Factory.CreateDbContext();
         var intentAfter = await db2.SubmitIntents.FirstOrDefaultAsync(
-            i => i.OperationId == "op-survives");
+            i => i.OperationId == "op-receipt-deletes-intent");
         Assert.Null(intentAfter);
     }
 
