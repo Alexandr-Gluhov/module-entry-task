@@ -103,7 +103,8 @@ public class SubmitWorker(
     {
         intent.AttemptCount++;
 
-        var delaySeconds = Math.Min(5 * Math.Pow(2, intent.AttemptCount - 1), 300);
+        var maxDelay = Math.Min(5 * Math.Pow(2, intent.AttemptCount - 1), 300);
+        var delaySeconds = Random.Shared.NextDouble() * maxDelay;
         intent.RetryAfter = DateTime.UtcNow.AddSeconds(delaySeconds);
 
         await db.SaveChangesAsync(stoppingToken);
