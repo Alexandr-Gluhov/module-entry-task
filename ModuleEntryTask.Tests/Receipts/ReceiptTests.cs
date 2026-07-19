@@ -159,4 +159,57 @@ public class ReceiptTests(ApiFactory factory) : TestBase(factory)
         Assert.Equal("ppid-early", op!.ProviderPaymentId);
         Assert.Equal(OperationStatus.Completed, op.Status);
     }
+
+    [Fact]
+    public async Task NotFound_Returns404()
+    {
+        var response = await Client.PostAsJsonAsync("/receipts", new
+        {
+            providerPaymentId = "ppid-nf",
+            operationId = "nonexistent-op",
+            result = "COMPLETED",
+            message = "ok",
+            occurredAt = DateTime.UtcNow
+        });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvalidResult_Returns400()
+    {
+        await CreateAndSubmitAsync("op-invalid-result");
+
+        var response = await Client.PostAsJsonAsync("/receipts", new
+        {
+            providerPaymentId = "ppid-inv",
+            operationId = "op-invalid-result",
+            result = "PENDING",
+            message = "ok",
+            occurredAt = DateTime.UtcNow
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ForCreatedOperation_Completes()
+    {
+        await CreateOperationAsync("op-receipt-created");
+
+        var response = await Client.PostAsJsonAsync("/receipts", new
+        {
+            providerPaymentId = "ppid-created",
+            operationId = "op-receipt-created",
+            result = "COMPLETED",
+            message = "ok",
+            occurredAt = DateTime.UtcNow
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var db = Factory.CreateDbContext();
+        var op = await db.Operations.FindAsync("op-receipt-created");
+        Assert.Equal(OperationStatus.Completed, op!.Status);
+    }
 }

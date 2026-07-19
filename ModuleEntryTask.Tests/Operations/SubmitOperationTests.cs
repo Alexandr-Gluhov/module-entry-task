@@ -40,6 +40,52 @@ public class SubmitOperationTests(ApiFactory factory) : TestBase(factory)
     }
 
     [Fact]
+    public async Task Submit_CompletedOperation_Returns200_NoNewIntent()
+    {
+        await CreateAndSubmitAsync("op-submit-completed");
+
+        await Client.PostAsJsonAsync("/receipts", new
+        {
+            providerPaymentId = "ppid-c",
+            operationId = "op-submit-completed",
+            result = "COMPLETED",
+            message = "done",
+            occurredAt = DateTime.UtcNow
+        });
+
+        var response = await Client.PostAsync("/operations/op-submit-completed/submit", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var db = Factory.CreateDbContext();
+        var intents = await db.SubmitIntents
+            .Where(i => i.OperationId == "op-submit-completed")
+            .ToListAsync();
+        Assert.Empty(intents);
+    }
+
+    [Fact]
+    public async Task Submit_RejectedOperation_Returns200_NoNewIntent()
+    {
+        await CreateAndSubmitAsync("op-submit-rejected");
+
+        await Client.PostAsJsonAsync("/receipts", new
+        {
+            providerPaymentId = "ppid-r",
+            operationId = "op-submit-rejected",
+            result = "REJECTED",
+            message = "rejected",
+            occurredAt = DateTime.UtcNow
+        });
+
+        var response = await Client.PostAsync("/operations/op-submit-rejected/submit", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+
+
+    [Fact]
     public async Task NotFound_Returns404()
     {
         var response = await Client.PostAsync("/operations/nonexistent/submit", null);
