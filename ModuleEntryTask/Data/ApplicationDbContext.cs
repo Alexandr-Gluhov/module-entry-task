@@ -53,12 +53,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasKey(s => s.Id);
 
-            // один активный intent на операцию
             entity.HasIndex(s => s.OperationId)
                 .IsUnique();
 
             entity.HasOne(s => s.Operation)
-                .WithOne()
+                .WithOne(o => o.SubmitIntent)
                 .HasForeignKey<SubmitIntent>(s => s.OperationId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
