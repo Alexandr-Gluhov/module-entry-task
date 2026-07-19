@@ -6,6 +6,7 @@ namespace ModuleEntryTask.Services;
 
 public class SubmitWorker(
     IServiceScopeFactory scopeFactory,
+    PaymentMetrics metrics,
     ILogger<SubmitWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(5);
@@ -42,6 +43,8 @@ public class SubmitWorker(
             .Where(i => i.RetryAfter == null || i.RetryAfter <= now)
             .ToListAsync(stoppingToken);
 
+        metrics.SetPendingOperations(intents.Count);
+
         foreach (var intent in intents.TakeWhile(_ => !stoppingToken.IsCancellationRequested))
         {
             await ProcessIntentAsync(db, providerClient, intent, stoppingToken);
@@ -76,12 +79,14 @@ public class SubmitWorker(
                     db.SubmitIntents.Remove(intent);
                     await db.SaveChangesAsync(stoppingToken);
 
+                    metrics.IncrementSubmitted();
                     logger.LogInformation(
                         "Payment submitted. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}",
                         operation.Id, response.Payment!.ProviderPaymentId, intent.AttemptCount + 1);
                     break;
 
                 case ProviderSubmitResult.TransientFailure:
+                    metrics.IncrementRetryAttempts();
                     logger.LogWarning(
                         "Transient failure. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}. Will retry.",
                         operation.Id, operation.ProviderPaymentId, intent.AttemptCount + 1);
@@ -89,6 +94,7 @@ public class SubmitWorker(
                     break;
 
                 case ProviderSubmitResult.PermanentFailure:
+                    metrics.IncrementFailed();
                     logger.LogError(
                         "Permanent failure. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}.",
                         operation.Id, operation.ProviderPaymentId, intent.AttemptCount + 1);

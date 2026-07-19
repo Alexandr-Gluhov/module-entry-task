@@ -1,5 +1,6 @@
 using ModuleEntryTask.Data;
 using ModuleEntryTask.Services;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ var app = builder.Build();
 await app.MigrateDbAsync();
 
 app.MapHealthChecks("/health");
+app.MapMetrics();
 app.MapControllers();
 
 app.Run();
