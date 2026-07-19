@@ -46,14 +46,13 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         builder.ConfigureTestServices(services =>
         {
-            // заменяем DbContext на тестовый с контейнером
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();
 
             services.AddNpgsql<ApplicationDbContext>(_postgres.GetConnectionString());
 
-            // отключаем воркер — в тестах управляем отправкой вручную
             services.RemoveAll<IHostedService>();
+            services.AddScoped<SubmitWorker>();
         });
 
         builder.UseEnvironment("Testing");

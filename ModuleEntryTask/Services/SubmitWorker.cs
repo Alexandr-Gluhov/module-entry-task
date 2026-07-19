@@ -15,7 +15,7 @@ public class SubmitWorker(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await ProcessPendingIntentsAsync(stoppingToken);
+            await ProcessOnceAsync(stoppingToken);
 
             try
             {
@@ -30,7 +30,7 @@ public class SubmitWorker(
         logger.LogInformation("SubmitWorker stopped gracefully.");
     }
 
-    private async Task ProcessPendingIntentsAsync(CancellationToken stoppingToken)
+    public async Task ProcessOnceAsync(CancellationToken stoppingToken)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

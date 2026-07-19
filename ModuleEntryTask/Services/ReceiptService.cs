@@ -80,6 +80,12 @@ public class ReceiptService(ApplicationDbContext db)
 
         if (operation.SubmitIntent != null)
             db.SubmitIntents.Remove(operation.SubmitIntent);
+        else
+        {
+            var intent = await db.SubmitIntents.FirstOrDefaultAsync(i => i.OperationId == operation.Id);
+            if (intent != null)
+                db.SubmitIntents.Remove(intent);
+        }
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
