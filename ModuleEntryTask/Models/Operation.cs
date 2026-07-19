@@ -10,4 +10,5 @@ public class Operation
    public Currency Currency { get; set; }
    public string Description { get; set; } = null!;
    public string? ProviderPaymentId { get; set; }
+   public SubmitIntent? SubmitIntent { get; set; }
 }

@@ -13,6 +13,7 @@ public static class ServiceExtensions
         });
 
         builder.Services.AddScoped<OperationService>();
+        builder.Services.AddScoped<ReceiptService>();
         builder.Services.AddHostedService<SubmitWorker>();
     }
 }
