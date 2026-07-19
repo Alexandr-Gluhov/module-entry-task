@@ -67,21 +67,21 @@ public class SubmitWorker(
                     await db.SaveChangesAsync(stoppingToken);
 
                     logger.LogInformation(
-                        "Payment submitted for operation {OperationId}, providerPaymentId: {ProviderPaymentId}",
-                        operation.Id, response.Payment!.ProviderPaymentId);
+                        "Payment submitted. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}",
+                        operation.Id, response.Payment!.ProviderPaymentId, intent.AttemptCount + 1);
                     break;
 
                 case ProviderSubmitResult.TransientFailure:
                     logger.LogWarning(
-                        "Transient failure submitting operation {OperationId}, attempt {AttemptCount}. Will retry.",
-                        operation.Id, intent.AttemptCount + 1);
+                        "Transient failure. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}. Will retry.",
+                        operation.Id, operation.ProviderPaymentId, intent.AttemptCount + 1);
                     await ScheduleRetryAsync(db, intent, stoppingToken);
                     break;
 
                 case ProviderSubmitResult.PermanentFailure:
                     logger.LogError(
-                        "Permanent failure submitting operation {OperationId}. No retry.",
-                        operation.Id);
+                        "Permanent failure. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}.",
+                        operation.Id, operation.ProviderPaymentId, intent.AttemptCount + 1);
                     await ScheduleRetryAsync(db, intent, stoppingToken);
                     break;
             }
@@ -89,8 +89,8 @@ public class SubmitWorker(
         catch (Exception ex)
         {
             logger.LogWarning(ex,
-                "Unexpected error submitting operation {OperationId}, attempt {AttemptCount}",
-                operation.Id, intent.AttemptCount + 1);
+                "Unexpected error. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Attempt: {AttemptCount}",
+                operation.Id, operation.ProviderPaymentId, intent.AttemptCount + 1);
 
             await ScheduleRetryAsync(db, intent, stoppingToken);
         }
