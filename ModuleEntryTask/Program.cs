@@ -8,6 +8,11 @@ builder.AddApplicationServices();
 builder.Services.AddHealthChecks();
 builder.Services.AddControllers();
 
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
+
 var app = builder.Build();
 
 await app.MigrateDbAsync();

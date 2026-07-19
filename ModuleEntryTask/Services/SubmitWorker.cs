@@ -15,8 +15,18 @@ public class SubmitWorker(
         while (!stoppingToken.IsCancellationRequested)
         {
             await ProcessPendingIntentsAsync(stoppingToken);
-            await Task.Delay(PollingInterval, stoppingToken);
+
+            try
+            {
+                await Task.Delay(PollingInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
+
+        logger.LogInformation("SubmitWorker stopped gracefully.");
     }
 
     private async Task ProcessPendingIntentsAsync(CancellationToken stoppingToken)
