@@ -60,10 +60,10 @@ public class SubmitWorker(
             if (result != null)
             {
                 if (operation.ProviderPaymentId == null)
-                {
                     operation.ProviderPaymentId = result.ProviderPaymentId;
-                    await db.SaveChangesAsync(stoppingToken);
-                }
+
+                db.SubmitIntents.Remove(intent);
+                await db.SaveChangesAsync(stoppingToken);
 
                 logger.LogInformation(
                     "Payment submitted for operation {OperationId}, providerPaymentId: {ProviderPaymentId}",
