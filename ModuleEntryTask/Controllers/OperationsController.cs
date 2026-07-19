@@ -10,6 +10,20 @@ namespace ModuleEntryTask.Controllers;
 [Route("operations")]
 public class OperationsController(OperationService operationService) : ControllerBase
 {
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        try
+        {
+            var operation = await operationService.GetByIdAsync(id);
+            return Ok(OperationMapper.ToResponse(operation));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateOperationRequest request)
     {

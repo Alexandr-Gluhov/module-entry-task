@@ -7,6 +7,12 @@ namespace ModuleEntryTask.Services;
 
 public class OperationService(ApplicationDbContext db)
 {
+    public async Task<Operation> GetByIdAsync(string operationId)
+    {
+        return await db.Operations.FindAsync(operationId)
+            ?? throw new NotFoundException($"Operation '{operationId}' not found.");
+    }
+
     public async Task<Operation> CreateAsync(
         string operationId,
         decimal amount,
