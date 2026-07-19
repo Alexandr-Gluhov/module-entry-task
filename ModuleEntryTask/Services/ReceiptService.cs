@@ -6,7 +6,7 @@ using ModuleEntryTask.Models;
 
 namespace ModuleEntryTask.Services;
 
-public class ReceiptService(ApplicationDbContext db)
+public class ReceiptService(ApplicationDbContext db, ILogger<ReceiptService> logger)
 {
     public async Task ProcessAsync(ReceiptRequest request)
     {
@@ -26,6 +26,10 @@ public class ReceiptService(ApplicationDbContext db)
         if (operation.ProviderPaymentId != null
             && operation.ProviderPaymentId != request.ProviderPaymentId)
         {
+            logger.LogWarning(
+                "providerPaymentId mismatch. OperationId: {OperationId}, Expected: {Expected}, Got: {Got}",
+                request.OperationId, operation.ProviderPaymentId, request.ProviderPaymentId);
+
             throw new ConflictException(
                 $"providerPaymentId mismatch: expected '{operation.ProviderPaymentId}'.");
         }
@@ -35,9 +39,17 @@ public class ReceiptService(ApplicationDbContext db)
         {
             if (operation.Status == incomingStatus)
             {
+                logger.LogInformation(
+                    "Duplicate receipt ignored. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Result: {Result}",
+                    request.OperationId, request.ProviderPaymentId, request.Result);
+
                 await transaction.RollbackAsync();
                 return;
             }
+
+            logger.LogWarning(
+                "Late conflicting receipt ignored. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, CurrentStatus: {CurrentStatus}, IncomingResult: {IncomingResult}",
+                request.OperationId, request.ProviderPaymentId, operation.Status, request.Result);
 
             db.OperationEvents.Add(new OperationEvent
             {
@@ -89,5 +101,9 @@ public class ReceiptService(ApplicationDbContext db)
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+
+        logger.LogInformation(
+            "Receipt processed. OperationId: {OperationId}, ProviderPaymentId: {ProviderPaymentId}, Result: {Result}",
+            request.OperationId, request.ProviderPaymentId, request.Result);
     }
 }
